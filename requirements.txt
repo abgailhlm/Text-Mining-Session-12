@@ -1,8 +1,7 @@
-streamlit==1.45.1
-pandas==2.2.3
-numpy==1.26.4
-scikit-learn==1.5.2
-joblib==1.4.2
-Sastrawi==1.0.1
-tensorflow-cpu==2.15.0
-flask==3.1.1
+streamlit
+pandas
+numpy
+scikit-learn
+joblib
+Sastrawi
+flask
