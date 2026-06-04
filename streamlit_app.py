@@ -7,239 +7,247 @@ from preprocessing import preprocess
 
 MODEL_DIR = "models"
 
+# =========================
+# PAGE CONFIG
+# =========================
+
 st.set_page_config(
-page_title="Sentiment Analysis Ann Abigail",
-page_icon="💬",
-layout="wide"
+    page_title="Sentiment Analysis",
+    page_icon="💬",
+    layout="wide"
 )
 
-st.markdown("""
+# =========================
+# CSS
+# =========================
 
+st.markdown("""
 <style>
 .hero {
     background: linear-gradient(135deg,#1e3c72,#2a5298);
-    padding: 30px;
-    border-radius: 20px;
+    padding: 25px;
+    border-radius: 15px;
     color: white;
-    text-align:center;
-    margin-bottom:20px;
+    text-align: center;
+    margin-bottom: 20px;
 }
+
 .stButton button {
-    width:100%;
-    height:50px;
-    font-weight:bold;
+    width: 100%;
+    height: 50px;
+    font-size: 16px;
+    font-weight: bold;
 }
 </style>
-
 """, unsafe_allow_html=True)
+
+# =========================
+# LOAD ML MODEL
+# =========================
 
 @st.cache_resource
 def load_ml():
-model = joblib.load(
-os.path.join(MODEL_DIR, "ml_model.pkl")
-)
+    model = joblib.load(
+        os.path.join(MODEL_DIR, "ml_model.pkl")
+    )
 
-```
-tfidf = joblib.load(
-    os.path.join(MODEL_DIR, "tfidf_vectorizer.pkl")
-)
+    tfidf = joblib.load(
+        os.path.join(MODEL_DIR, "tfidf_vectorizer.pkl")
+    )
 
-return model, tfidf
-```
+    return model, tfidf
+
+
+# =========================
+# LOAD LSTM MODEL
+# =========================
 
 @st.cache_resource
 def load_dl():
 
-```
-from tensorflow.keras.models import load_model
+    from tensorflow.keras.models import load_model
 
-model = load_model(
-    os.path.join(MODEL_DIR, "dl_model.h5")
-)
+    model = load_model(
+        os.path.join(MODEL_DIR, "dl_model.h5")
+    )
 
-with open(
-    os.path.join(MODEL_DIR, "tokenizer.pkl"),
-    "rb"
-) as f:
-    tokenizer = pickle.load(f)
+    with open(
+        os.path.join(MODEL_DIR, "tokenizer.pkl"),
+        "rb"
+    ) as f:
+        tokenizer = pickle.load(f)
 
-with open(
-    os.path.join(MODEL_DIR, "config.pkl"),
-    "rb"
-) as f:
-    config = pickle.load(f)
+    with open(
+        os.path.join(MODEL_DIR, "config.pkl"),
+        "rb"
+    ) as f:
+        config = pickle.load(f)
 
-return model, tokenizer, config
-```
+    return model, tokenizer, config
+
+
+# =========================
+# ML PREDICTION
+# =========================
 
 def predict_ml(text):
 
-```
-model, tfidf = load_ml()
+    model, tfidf = load_ml()
 
-cleaned = preprocess(text)
+    cleaned = preprocess(text)
 
-vector = tfidf.transform([cleaned])
+    vector = tfidf.transform([cleaned])
 
-proba = float(
-    model.predict_proba(vector)[0][1]
-)
+    probability = float(
+        model.predict_proba(vector)[0][1]
+    )
 
-label = (
-    "Positif"
-    if proba >= 0.5
-    else "Negatif"
-)
+    label = "Positif" if probability >= 0.5 else "Negatif"
 
-return label, proba, cleaned
-```
+    return label, probability, cleaned
+
+
+# =========================
+# DL PREDICTION
+# =========================
 
 def predict_dl(text):
 
-```
-from tensorflow.keras.preprocessing.sequence import pad_sequences
+    from tensorflow.keras.preprocessing.sequence import pad_sequences
 
-model, tokenizer, config = load_dl()
+    model, tokenizer, config = load_dl()
 
-cleaned = preprocess(text)
+    cleaned = preprocess(text)
 
-sequence = tokenizer.texts_to_sequences(
-    [cleaned]
-)
+    sequence = tokenizer.texts_to_sequences([cleaned])
 
-padded = pad_sequences(
-    sequence,
-    maxlen=config["MAX_LEN"],
-    padding="post",
-    truncating="post"
-)
+    padded = pad_sequences(
+        sequence,
+        maxlen=config["MAX_LEN"],
+        padding="post",
+        truncating="post"
+    )
 
-proba = float(
-    model.predict(
-        padded,
-        verbose=0
-    )[0][0]
-)
+    probability = float(
+        model.predict(
+            padded,
+            verbose=0
+        )[0][0]
+    )
 
-label = (
-    "Positif"
-    if proba >= 0.5
-    else "Negatif"
-)
+    label = "Positif" if probability >= 0.5 else "Negatif"
 
-return label, proba, cleaned
-```
+    return label, probability, cleaned
+
+
+# =========================
+# HEADER
+# =========================
 
 st.markdown("""
-
 <div class="hero">
-<h1>💬 Sentiment Analysis Dashboard</h1>
-<p>
-Machine Learning & Deep Learning
-</p>
+    <h1>💬 Sentiment Analysis Dashboard</h1>
+    <p>Analisis Sentimen Bahasa Indonesia menggunakan Logistic Regression dan LSTM</p>
 </div>
 """, unsafe_allow_html=True)
 
+# =========================
+# SIDEBAR
+# =========================
+
 with st.sidebar:
 
-```
-st.title("📊 About")
+    st.header("Model")
 
-st.markdown("""
-```
+    model_choice = st.radio(
+        "Pilih Model",
+        [
+            "Logistic Regression",
+            "LSTM Deep Learning"
+        ]
+    )
 
-### Models
+    st.markdown("---")
 
-✅ Logistic Regression
+    st.write("Dataset: 4142 data")
 
-✅ LSTM Deep Learning
-
-### Dataset
-
-4142 Reviews
-""")
-
-model_choice = st.radio(
-"Pilih Model",
-[
-"Logistic Regression",
-"LSTM Deep Learning"
-]
-)
+# =========================
+# INPUT
+# =========================
 
 text = st.text_area(
-"Masukkan Teks",
-height=180
+    "Masukkan teks",
+    height=180,
+    placeholder="Contoh: Barangnya bagus banget dan pengiriman cepat."
 )
+
+# =========================
+# ANALYZE
+# =========================
 
 if st.button("🔍 ANALYZE"):
 
-```
-if not text.strip():
+    if not text.strip():
 
-    st.warning(
-        "Masukkan teks terlebih dahulu."
-    )
-
-else:
-
-    with st.spinner(
-        "Processing..."
-    ):
-
-        if model_choice == "LSTM Deep Learning":
-
-            label, proba, cleaned = predict_dl(text)
-
-        else:
-
-            label, proba, cleaned = predict_ml(text)
-
-    confidence = (
-        proba
-        if label == "Positif"
-        else 1 - proba
-    )
-
-    if label == "Positif":
-
-        st.success(
-            f"😊 {label}"
-        )
+        st.warning("Masukkan teks terlebih dahulu.")
 
     else:
 
-        st.error(
-            f"😞 {label}"
+        with st.spinner("Memproses..."):
+
+            if model_choice == "LSTM Deep Learning":
+
+                label, probability, cleaned = predict_dl(text)
+
+            else:
+
+                label, probability, cleaned = predict_ml(text)
+
+        confidence = (
+            probability
+            if label == "Positif"
+            else 1 - probability
         )
 
-    c1, c2, c3 = st.columns(3)
+        if label == "Positif":
 
-    c1.metric(
-        "Prediction",
-        label
-    )
+            st.success(f"😊 {label}")
 
-    c2.metric(
-        "Confidence",
-        f"{confidence*100:.2f}%"
-    )
+        else:
 
-    c3.metric(
-        "P(Positive)",
-        f"{proba:.4f}"
-    )
+            st.error(f"😞 {label}")
 
-    st.progress(float(proba))
+        col1, col2, col3 = st.columns(3)
 
-    with st.expander(
-        "Preprocessed Text"
-    ):
-        st.write(cleaned)
-```
+        with col1:
+            st.metric(
+                "Prediction",
+                label
+            )
 
-st.divider()
+        with col2:
+            st.metric(
+                "Confidence",
+                f"{confidence*100:.2f}%"
+            )
 
-st.caption(
-"Sentiment Analysis | Logistic Regression + LSTM"
-)
+        with col3:
+            st.metric(
+                "P(Positive)",
+                f"{probability:.4f}"
+            )
+
+        st.progress(float(probability))
+
+        with st.expander("Hasil Preprocessing"):
+            st.write(cleaned)
+
+        with st.expander("Original Text"):
+            st.write(text)
+
+# =========================
+# FOOTER
+# =========================
+
+st.markdown("---")
+st.caption("Sentiment Analysis | Logistic Regression + LSTM")
