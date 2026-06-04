@@ -1,12 +1,4 @@
-"""
-Sentiment Analysis App
-======================
-Deploy:
-- streamlit run streamlit_app.py
-"""
-
 import os
-import pickle
 import joblib
 import streamlit as st
 
@@ -14,19 +6,19 @@ from preprocessing import preprocess
 
 MODEL_DIR = "models"
 
-# ======================================
+# ==================================================
 # PAGE CONFIG
-# ======================================
+# ==================================================
 
 st.set_page_config(
-    page_title="Sentiment Analysis - Ann Abigail H.",
+    page_title="Sentiment Analysis",
     page_icon="💬",
     layout="wide"
 )
 
-# ======================================
+# ==================================================
 # CUSTOM CSS
-# ======================================
+# ==================================================
 
 st.markdown("""
 <style>
@@ -42,13 +34,6 @@ st.markdown("""
     color: white;
     text-align: center;
     margin-bottom: 25px;
-}
-
-.metric-card {
-    background: #f8f9fa;
-    padding: 15px;
-    border-radius: 15px;
-    border: 1px solid #e9ecef;
 }
 
 .result-positive {
@@ -76,198 +61,153 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ======================================
+# ==================================================
 # LOAD MODEL
-# ======================================
+# ==================================================
 
 @st.cache_resource
-def load_ml():
-    model = joblib.load(os.path.join(MODEL_DIR, "ml_model.pkl"))
-    tfidf = joblib.load(os.path.join(MODEL_DIR, "tfidf_vectorizer.pkl"))
+def load_model():
+    model = joblib.load(
+        os.path.join(MODEL_DIR, "ml_model.pkl")
+    )
+
+    tfidf = joblib.load(
+        os.path.join(MODEL_DIR, "tfidf_vectorizer.pkl")
+    )
+
     return model, tfidf
 
+# ==================================================
+# PREDICTION
+# ==================================================
 
-@st.cache_resource
-def load_dl():
-    from tensorflow.keras.models import load_model
+def predict_sentiment(text):
 
-    model = load_model(
-        os.path.join(MODEL_DIR, "dl_model.h5")
-    )
-
-    with open(os.path.join(MODEL_DIR, "tokenizer.pkl"), "rb") as f:
-        tokenizer = pickle.load(f)
-
-    with open(os.path.join(MODEL_DIR, "config.pkl"), "rb") as f:
-        config = pickle.load(f)
-
-    return model, tokenizer, config
-
-
-# ======================================
-# PREDICT ML
-# ======================================
-
-def predict_ml(text):
-    model, tfidf = load_ml()
+    model, tfidf = load_model()
 
     cleaned = preprocess(text)
 
-    vec = tfidf.transform([cleaned])
+    vector = tfidf.transform([cleaned])
 
-    proba = float(model.predict_proba(vec)[0][1])
-
-    label = "Positif" if proba >= 0.5 else "Negatif"
-
-    return label, proba, cleaned
-
-
-# ======================================
-# PREDICT DL
-# ======================================
-
-def predict_dl(text):
-
-    from tensorflow.keras.preprocessing.sequence import pad_sequences
-
-    model, tok, cfg = load_dl()
-
-    cleaned = preprocess(text)
-
-    seq = pad_sequences(
-        tok.texts_to_sequences([cleaned]),
-        maxlen=cfg["MAX_LEN"],
-        padding="post",
-        truncating="post"
+    probability = float(
+        model.predict_proba(vector)[0][1]
     )
 
-    proba = float(
-        model.predict(seq, verbose=0)[0][0]
+    label = (
+        "Positif"
+        if probability >= 0.5
+        else "Negatif"
     )
 
-    label = "Positif" if proba >= 0.5 else "Negatif"
+    return label, probability, cleaned
 
-    return label, proba, cleaned
-
-
-# ======================================
+# ==================================================
 # SIDEBAR
-# ======================================
+# ==================================================
 
 with st.sidebar:
 
     st.title("📊 About")
 
     st.markdown("""
-### Features
+### Model
 
-✅ Text Cleaning
+- Logistic Regression
+- TF-IDF Vectorizer
+
+### NLP Pipeline
+
+✅ Case Folding
+
+✅ Cleaning
+
+✅ Tokenization
 
 ✅ Stopword Removal
 
 ✅ Stemming (Sastrawi)
 
-✅ TF-IDF
+### Dataset
 
-✅ Logistic Regression
-
-✅ LSTM Deep Learning
+4142 Data Sentimen
 """)
 
-    st.divider()
-
-    st.info(
-        "Aplikasi analisis sentimen Bahasa Indonesia "
-        "menggunakan Machine Learning dan Deep Learning."
-    )
-
-# ======================================
+# ==================================================
 # HEADER
-# ======================================
+# ==================================================
 
 st.markdown("""
 <div class="hero">
-    <h1>💬 Sentiment Analysis System</h1>
-    <p>
-        Analisis sentimen ulasan Bahasa Indonesia menggunakan
-        Machine Learning dan Deep Learning
-    </p>
+<h1>💬 Sentiment Analysis Dashboard</h1>
+<p>
+Analisis Sentimen Bahasa Indonesia menggunakan
+Machine Learning dan NLP
+</p>
 </div>
 """, unsafe_allow_html=True)
 
-# ======================================
-# INPUT SECTION
-# ======================================
+# ==================================================
+# INPUT
+# ==================================================
 
-col1, col2 = st.columns([2, 1])
+col1, col2 = st.columns([3,1])
 
 with col1:
 
     text = st.text_area(
-        "Masukkan Teks",
+        "Masukkan Ulasan",
         height=180,
-        placeholder="Contoh: Barangnya bagus banget, pengiriman cepat dan seller sangat ramah."
+        placeholder="Contoh: Barangnya bagus banget, pengiriman cepat dan seller ramah."
     )
 
 with col2:
 
-    model_choice = st.radio(
-        "Pilih Model",
-        [
-            "Machine Learning (Logistic Regression)",
-            "Deep Learning (LSTM)"
-        ]
-    )
+    st.markdown("### Contoh Input")
 
-    st.markdown("### Contoh")
+    if st.button("Positif Example"):
+        st.session_state.example = (
+            "Barangnya bagus banget dan pengiriman cepat."
+        )
 
-    st.caption(
-        "Barangnya bagus banget dan pengiriman cepat."
-    )
+    if st.button("Negatif Example"):
+        st.session_state.example = (
+            "Produk mengecewakan dan kualitas buruk."
+        )
 
-    st.caption(
-        "Produk mengecewakan dan kualitas buruk."
-    )
+# ==================================================
+# ANALYZE BUTTON
+# ==================================================
 
-# ======================================
-# BUTTON
-# ======================================
-
-if st.button("🔍 ANALYZE SENTIMENT"):
+if st.button("🔍 ANALYZE SENTIMENT", type="primary"):
 
     if not text.strip():
 
-        st.warning("Masukkan teks terlebih dahulu.")
+        st.warning(
+            "Masukkan teks terlebih dahulu."
+        )
 
     else:
 
-        with st.spinner("Menganalisis sentimen..."):
+        with st.spinner(
+            "Menganalisis sentimen..."
+        ):
 
-            if model_choice.startswith("Deep"):
-
-                label, proba, cleaned = predict_dl(text)
-
-            else:
-
-                label, proba, cleaned = predict_ml(text)
+            label, proba, cleaned = predict_sentiment(text)
 
         confidence = (
             proba
             if label == "Positif"
-            else (1 - proba)
+            else 1 - proba
         )
 
         st.divider()
 
-        # RESULT
-
         if label == "Positif":
 
             st.markdown(
-                f"""
+                """
                 <div class="result-positive">
                     <h2>😊 Sentimen Positif</h2>
-                    <p>Model mengidentifikasi teks sebagai sentimen positif.</p>
                 </div>
                 """,
                 unsafe_allow_html=True
@@ -276,10 +216,9 @@ if st.button("🔍 ANALYZE SENTIMENT"):
         else:
 
             st.markdown(
-                f"""
+                """
                 <div class="result-negative">
                     <h2>😞 Sentimen Negatif</h2>
-                    <p>Model mengidentifikasi teks sebagai sentimen negatif.</p>
                 </div>
                 """,
                 unsafe_allow_html=True
@@ -287,21 +226,21 @@ if st.button("🔍 ANALYZE SENTIMENT"):
 
         st.write("")
 
-        m1, m2, m3 = st.columns(3)
+        c1, c2, c3 = st.columns(3)
 
-        with m1:
+        with c1:
             st.metric(
                 "Prediction",
                 label
             )
 
-        with m2:
+        with c2:
             st.metric(
                 "Confidence",
                 f"{confidence*100:.2f}%"
             )
 
-        with m3:
+        with c3:
             st.metric(
                 "P(Positive)",
                 f"{proba:.4f}"
@@ -311,22 +250,22 @@ if st.button("🔍 ANALYZE SENTIMENT"):
 
         st.progress(float(proba))
 
-        st.write("")
-
-        with st.expander("🔎 Hasil Preprocessing"):
-
+        with st.expander(
+            "🔎 Hasil Preprocessing"
+        ):
             st.write(cleaned)
 
-        with st.expander("📄 Original Text"):
-
+        with st.expander(
+            "📄 Original Text"
+        ):
             st.write(text)
 
-# ======================================
+# ==================================================
 # FOOTER
-# ======================================
+# ==================================================
 
 st.divider()
 
 st.caption(
-    "Sentiment Analysis Dashboard | Streamlit + Scikit-Learn + TensorFlow"
+    "Text Mining Session 12 | Logistic Regression + TF-IDF"
 )
