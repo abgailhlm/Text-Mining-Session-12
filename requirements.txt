@@ -1,0 +1,8 @@
+pandas
+numpy
+scikit-learn
+joblib
+Sastrawi
+tensorflow-cpu
+flask
+streamlit
