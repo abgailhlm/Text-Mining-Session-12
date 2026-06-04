@@ -11,7 +11,7 @@ MODEL_DIR = "models"
 # ==================================================
 
 st.set_page_config(
-    page_title="Sentiment Analysis",
+    page_title="Sentiment Analysis - Ann Abigail",
     page_icon="💬",
     layout="wide"
 )
